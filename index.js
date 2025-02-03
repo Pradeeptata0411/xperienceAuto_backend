@@ -818,8 +818,12 @@ app.put("/admin/accept-seller_status_action", async (req, res) => {
 
 
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000; // Use Render-assigned port
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server Running on port ${PORT}`);
+app.get("/", (req, res) => {
+  res.send("Server is running!");
+});
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
 });
