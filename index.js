@@ -830,12 +830,9 @@ app.put("/admin/accept-seller_status_action", async (req, res) => {
 
 const port = process.env.PORT || 4000;
 
-app.use(express.static(path.join(__dirname, "build")));
-
-// Handle React SPA: serve index.html for any route not handled by API
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "build", "index.html"));
-});
+app.get('/', (req, res) => {
+  res.send('Hello World!')
+})
 
 // Start the server
 app.listen(port, () => {
