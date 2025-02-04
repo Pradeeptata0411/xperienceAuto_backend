@@ -81,7 +81,7 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const app = express();
-
+require('dotenv').config();
 
 
 const multer = require("multer"); // for handling file uploads
@@ -120,6 +120,8 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   gender: { type: String, required: true },
   contact_no: { type: Number, required: true },
+  otp: String, // OTP for password reset
+    otpExpires: Date, // OTP expiration time
 });
 
 const Register_data = mongoose.model("Register_data", userSchema);
@@ -711,23 +713,39 @@ app.put("/admin/status-action", async (req, res) => {
 
 // customer mail service
 
-const CUSTOMER_CARE_EMAIL = "jfsdsdpams@gmail.com";
+// const CUSTOMER_CARE_EMAIL = "jfsdsdpams@gmail.com";
+
+// const transporter = nodemailer.createTransport({
+//   host: "smtp.gmail.com", // Gmail SMTP host
+//   port: 465, // Secure SMTP port
+//   secure: true, // Use SSL/TLS
+//   auth: {
+//     user: CUSTOMER_CARE_EMAIL, // Default customer care email
+//     pass: "cqhr ipwf xosa ymwl", // Replace with your app password
+//     // pass: "pekg ofva ezkg yqnj", // Replace with your app password
+//   },
+//   logger: true, // Enable detailed logging
+//   debug: true, // Enable debug output
+// });
+
+
 
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com", // Gmail SMTP host
-  port: 465, // Secure SMTP port
-  secure: true, // Use SSL/TLS
+  service: "gmail",
   auth: {
-    user: CUSTOMER_CARE_EMAIL, // Default customer care email
-    pass: "cqhr ipwf xosa ymwl", // Replace with your app password
+      user: process.env.EMAIL_USER, 
+      pass: process.env.EMAIL_PASS,
   },
-  logger: true, // Enable detailed logging
-  debug: true, // Enable debug output
 });
+
+
+
+
+
+const CUSTOMER_CARE_EMAIL = "jfsdsdpams@gmail.com";
 
 app.post("/send-email", async (req, res) => {
   const { userEmail, message } = req.body;
-
   // Validate inputs
   if (!userEmail || !message) {
     return res
@@ -807,25 +825,71 @@ app.put("/admin/accept-seller_status_action", async (req, res) => {
 
 
 
+// password reset option 
 
 
 
 
+app.post("/send-otp", async (req, res) => {
+  try {
+      const { email } = req.body;
+      const user = await Register_data.findOne({ email });
+      if (!user) return res.status(400).json({ message: "User not found" });
 
-// const PORT = 5000;
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      user.otp = otp;
+      user.otpExpires = new Date(Date.now() + 10 * 60000); // OTP expires in 10 min
+      await user.save();
 
-// app.listen(PORT, () => console.log(`Server Running on port ${PORT}`));
+      await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: email,
+          subject: "Password Reset OTP",
+          text: `Your OTP for password reset is: ${otp}`,
+      });
+
+      res.json({ message: "OTP sent to your email" });
+  } catch (error) {
+      res.status(500).json({ message: "Error sending OTP" });
+  }
+});
+
+// **Step 2: Verify OTP**
+app.post("/verify-otp", async (req, res) => {
+  try {
+      const { email, otp } = req.body;
+      const user = await Register_data.findOne({ email });
+
+      if (!user || user.otp !== otp || new Date() > user.otpExpires) {
+          return res.status(400).json({ message: "Invalid or expired OTP" });
+      }
+
+      res.json({ message: "OTP verified. You can reset your password now." });
+  } catch (error) {
+      res.status(500).json({ message: "Error verifying OTP" });
+  }
+});
+
+// **Step 3: Reset Password**
+app.post("/reset-password", async (req, res) => {
+  try {
+      const { email, newPassword } = req.body;
+      const user = await Register_data.findOne({ email });
+
+      if (!user) return res.status(400).json({ message: "User not found" });
+
+      user.password = newPassword;
+      user.otp = null;
+      user.otpExpires = null;
+      await user.save();
+
+      res.json({ message: "Password reset successful" });
+  } catch (error) {
+      res.status(500).json({ message: "Error resetting password" });
+  }
+});
 
 
-// const port = process.env.PORT || 4000;
-
-// app.get('/', (req, res) => {
-//   res.send('Hello World!')
-// })
-
-// app.listen(port, () => {
-//   console.log(`Example app listening on port ${port}`)
-// })
 
 
 const port = process.env.PORT || 4000;
