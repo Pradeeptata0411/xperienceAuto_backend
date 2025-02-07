@@ -845,7 +845,31 @@ app.post("/send-otp", async (req, res) => {
           from: process.env.EMAIL_USER,
           to: email,
           subject: "Password Reset OTP",
-          text: `Your OTP for password reset is: ${otp}`,
+      //     text: `Dear User,
+
+      //             We received a request to reset your password. Please use the following One-Time Password (OTP) to proceed:
+
+      //             🔑 OTP: ${otp}
+
+      //             This OTP is valid for the next 10 minutes. If you did not request a password reset, please ignore this email.
+
+      //             For security reasons, do not share this OTP with anyone.
+
+      //             Best regards,  
+      //             Xperience Auto Support Team`,
+      // });
+      html: `<p>Dear User,</p>
+
+           <p>We received a request to reset your password. Please use the following One-Time Password (OTP) to proceed:</p>
+
+           <p><strong>🔑 OTP: ${otp}</strong></p>
+
+           <p>This OTP is valid for the next 10 minutes. If you did not request a password reset, please ignore this email.</p>
+
+           <p>For security reasons, do not share this OTP with anyone.</p>
+
+           <p>Best regards,<br>
+           <strong>Xperience Auto Support Team</strong></p>`,
       });
 
       res.json({ message: "OTP sent to your email" });
@@ -886,6 +910,53 @@ app.post("/reset-password", async (req, res) => {
       res.json({ message: "Password reset successful" });
   } catch (error) {
       res.status(500).json({ message: "Error resetting password" });
+  }
+});
+
+app.get("/admin/customer-count", async (req, res) => {
+  try {
+    const count = await Register_data.countDocuments();
+    res.json({ count });
+  } catch (error) {
+    console.error("Error:", error.message);
+    res.status(500).json({ error: "Server error", message: error.message });
+  }
+});
+
+
+
+app.get("/admin/seller-count", async (req, res) => {
+  try {
+    const seller_count = await Seller_Register_data.countDocuments();
+    res.json({ seller_count });
+  } catch (error) {
+    console.error("Error:", error.message);
+    res.status(500).json({ error: "Server error", message: error.message });
+  }
+});
+
+
+
+
+app.get("/admin/service-request-count", async (req, res) => {
+  try {
+    const service_request_count = await ServiceRequest.countDocuments();
+    res.json({ service_request_count });
+  } catch (error) {
+    console.error("Error:", error.message);
+    res.status(500).json({ error: "Server error", message: error.message });
+  }
+});
+
+
+
+app.get("/admin/product-count", async (req, res) => {
+  try {
+    const Product_count = await Product.countDocuments();
+    res.json({ Product_count });
+  } catch (error) {
+    console.error("Error:", error.message);
+    res.status(500).json({ error: "Server error", message: error.message });
   }
 });
 
