@@ -86,7 +86,7 @@ require('dotenv').config();
 
 const multer = require("multer"); // for handling file uploads
 const path = require("path");
-
+const Razorpay = require('razorpay');
 
 
 app.use(bodyParser.json());
@@ -961,7 +961,94 @@ app.get("/admin/product-count", async (req, res) => {
 });
 
 
+const paymentSchema = new mongoose.Schema({
+  userName: {
+    type: String,
+    required: true
+  },
+  userEmail: {
+    type: String,
+    required: true
+  },
+  date: {
+    type: Date,
+    default: Date.now
+  },
+  items: [{
+    name: {
+      type: String,
+      required: true
+    },
+    quantity: {
+      type: Number,
+      required: true
+    },
+    price: {
+      type: Number,
+      required: true
+    }
+  }],
+  totalAmount: {
+    type: Number,
+    required: true
+  },
+  paymentMode: {
+    type: String,
+    default: 'Razorpay'
+  },
+  paymentReceipt: {
+    type: String,
+    required: true
+  }
+});
 
+const Payment = mongoose.model('Payment', paymentSchema);
+
+
+app.post('/api/payment', async (req, res) => {
+  const { userName, userEmail, items, totalAmount, paymentReceipt } = req.body;
+
+  if (!userName || !userEmail || !items || !totalAmount || !paymentReceipt) {
+    return res.status(400).json({ error: 'Missing required payment details' });
+  }
+
+  console.log("Received payment details:", {
+    userName,
+    userEmail,
+    items,
+    totalAmount,
+    paymentReceipt
+  });
+
+  // Create new payment document
+  const payment = new Payment({
+    userName,
+    userEmail,
+    items,
+    totalAmount,
+    paymentReceipt
+  });
+
+  try {
+    // Save payment details into the database
+    const savedPayment = await payment.save();
+    console.log("Payment saved successfully:", savedPayment);
+
+    // Respond with a success message
+    res.status(200).json({
+      message: 'Payment details saved successfully',
+      payment: savedPayment
+    });
+  } catch (error) {
+    console.error("Error saving payment:", error);
+
+    // Handle error while saving
+    res.status(500).json({
+      error: 'Failed to save payment details',
+      details: error.message
+    });
+  }
+});
 
 const port = process.env.PORT || 4000;
 
