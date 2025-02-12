@@ -1005,6 +1005,22 @@ const paymentSchema = new mongoose.Schema({
 const Payment = mongoose.model('Payment', paymentSchema);
 
 
+app.get('/api/payments/:email', async (req, res) => {
+  try {
+      const userEmail = req.params.email;
+      const payments = await Payment.find({ userEmail });
+
+      if (!payments.length) {
+          return res.status(404).json({ message: "No payments found for this user." });
+      }
+
+      res.json(payments);
+  } catch (error) {
+      res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
 app.post('/api/payment', async (req, res) => {
   const { userName, userEmail, items, totalAmount, paymentReceipt } = req.body;
 
@@ -1049,6 +1065,20 @@ app.post('/api/payment', async (req, res) => {
     });
   }
 });
+
+
+app.get('/admin/payments', async (req, res) => {
+  try {
+    const payments = await Payment.find();
+    res.json(payments);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+
+
 
 const port = process.env.PORT || 4000;
 
