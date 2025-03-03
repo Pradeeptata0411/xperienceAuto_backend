@@ -1,102 +1,34 @@
-// normal adding data like text and discription in the data base
-
-// const express = require('express');
-// const mongoose = require('mongoose');
-// const bodyParser = require('body-parser');
-// const cors = require('cors');
-// require('dotenv').config();
-
-// const app = express();
-// const port = 5000;
-
-// // Middleware
-// app.use(cors()); // Update origin as needed
-// app.use(bodyParser.json());
-
-// // MongoDB Connection
-// const mongoURI = process.env.MONGO_URI;
-
-// mongoose
-//   .connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
-//   .then(() => console.log('Connected to MongoDB'))
-//   .catch((err) => console.error('MongoDB connection error:', err));
-
-// // Define a Schema
-// const itemSchema = new mongoose.Schema({
-//   name: String,
-//   description: String,
-// });
-
-// // Define a Model
-// const Item = mongoose.model('Item', itemSchema);
-
-// app.get('/', (req, res) => {
-//     res.send('<h1>Hello, Hi!</h1>');
-// });
-
-// // API Routes
-// app.get('/items', async (req, res) => {
-//   try {
-//     const items = await Item.find();
-//     res.json(items);
-//   } catch (err) {
-//     res.status(500).send(err.message);
-//   }
-// });
-
-// app.post('/items', async (req, res) => {
-//   const { name, description } = req.body;
-//   try {
-//     const newItem = new Item({ name, description });
-//     await newItem.save();
-//     res.status(201).json(newItem);
-//   } catch (err) {
-//     res.status(500).send(err.message);
-//   }
-// });
-
-// app.delete('/items/:id', async (req, res) => {
-//   const { id } = req.params;
-//   console.log(`Delete request for ID: ${id}`); // Debugging log
-//   try {
-//     const deletedItem = await Item.findByIdAndDelete(id);
-//     if (!deletedItem) {
-//       return res.status(404).json({ message: 'Item not found' });
-//     }
-//     res.json({ message: 'Item deleted successfully', deletedItem });
-//     console.log(`Item deleted successfully`);
-//   } catch (err) {
-//     console.error(err); // Debugging log
-//     res.status(500).send(err.message);
-//   }
-// });
-
-// // Start Server
-// app.listen(port, () => {
-//   console.log(`Server running on http://localhost:${port}`);
-// });
-
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const app = express();
-require('dotenv').config();
+require("dotenv").config();
+const cloudinary = require("cloudinary").v2; // Import Cloudinary SDK
+const FormData = require("form-data");
 
+
+const IMGBB_API_KEY = "ef30e4073d734cf3a6879a9795022022"; 
 
 const multer = require("multer"); // for handling file uploads
-const path = require("path");
-const Razorpay = require('razorpay');
 
+const path = require("path");
+const Razorpay = require("razorpay");
 
 app.use(bodyParser.json());
 app.use(cors());
 
 const nodemailer = require("nodemailer");
 
-// Serve static files (e.g., uploaded images)
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Serve static files (e.g., uploaded images)
+// app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 //const MONGO_URI = "mongodb://localhost:27017/reactnew";
 // mongoose
@@ -104,9 +36,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 //   .then(() => console.log("Connected to mongodb"))
 //   .catch((err) => console.error("Could not connect to MongoDb :", err));
 
-
 const MONGO_URI = "mongodb+srv://pradeep:pradeep@cluster0.9xzlb.mongodb.net/";
-
 
 // const MONGO_URI = "mongodb://localhost:27017/reactnew";
 mongoose
@@ -121,7 +51,7 @@ const userSchema = new mongoose.Schema({
   gender: { type: String, required: true },
   contact_no: { type: Number, required: true },
   otp: String, // OTP for password reset
-    otpExpires: Date, // OTP expiration time
+  otpExpires: Date, // OTP expiration time
 });
 
 const Register_data = mongoose.model("Register_data", userSchema);
@@ -281,9 +211,6 @@ app.get("/viewmyrequests/:email", async (req, res) => {
   }
 });
 
-
-
-
 app.get("/customer/viewProducts", async (req, res) => {
   try {
     const products = await Product.find({});
@@ -296,11 +223,6 @@ app.get("/customer/viewProducts", async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
-
-
-
-
-
 
 //seller register data
 
@@ -367,7 +289,7 @@ app.post("/sellerRegisterData", async (req, res) => {
 
 app.post("/sellerLogin", async (req, res) => {
   try {
-    const { sellerEmail, sellerPassword  , sellerStatus} = req.body;
+    const { sellerEmail, sellerPassword, sellerStatus } = req.body;
 
     // Ensure email and password are provided
     if (!sellerEmail || !sellerPassword) {
@@ -385,9 +307,10 @@ app.post("/sellerLogin", async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-
-    if(seller.sellerStatus === false){
-      return res.status(400).json({ message: "awaiting your acceptance for login by admin" });
+    if (seller.sellerStatus === false) {
+      return res
+        .status(400)
+        .json({ message: "awaiting your acceptance for login by admin" });
     }
 
     res.status(200).json({
@@ -405,9 +328,6 @@ app.post("/sellerLogin", async (req, res) => {
   }
 });
 
-
-
-
 const productSchema = new mongoose.Schema({
   productName: { type: String, required: true },
   manufacturer: { type: String, required: true },
@@ -419,69 +339,129 @@ const productSchema = new mongoose.Schema({
 
 const Product = mongoose.model("Product", productSchema);
 
-// File upload setup using Multer
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-      cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-      const fileExtension = path.extname(file.originalname);
-      cb(null, Date.now() + fileExtension);
-  },
-});
+//File upload setup using Multer
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     cb(null, "uploads/");
+//   },
+//   filename: (req, file, cb) => {
+//     const fileExtension = path.extname(file.originalname);
+//     cb(null, Date.now() + fileExtension);
+//   },
+// });
+
+const storage = multer.memoryStorage();
 
 const upload = multer({ storage: storage });
 
 // Add Product API route
+// app.post(
+//   "/seller/addProduct",
+//   upload.single("product_image"),
+//   async (req, res) => {
+//     try {
+//       const {
+//         product_name,
+//         product_description,
+//         seller_name,
+//         seller_Email,
+//         product_price,
+//       } = req.body;
+//       const productImage = req.file ? req.file.filename : null;
+
+//       if (!productImage) {
+//         return res.status(400).json({ message: "Image is required" });
+//       }
+
+//       const newProduct = new Product({
+//         productName: product_name,
+//         manufacturer: product_description,
+//         sellerName: seller_name,
+//         sellerEmail: seller_Email,
+//         productPrice: product_price,
+//         productImage: productImage,
+//       });
+
+//       await newProduct.save();
+//       res
+//         .status(201)
+//         .json({ message: "Product added successfully", product: newProduct });
+//     } catch (error) {
+//       console.error(error);
+//       res
+//         .status(500)
+//         .json({ message: "Error adding product", error: error.message });
+//     }
+//   }
+// );
+
 app.post("/seller/addProduct", upload.single("product_image"), async (req, res) => {
   try {
-      const { product_name, product_description, seller_name, seller_Email, product_price } = req.body;
-      const productImage = req.file ? req.file.filename : null;
+    const { product_name, product_description, seller_name, seller_Email, product_price } = req.body;
+    
+    if (!req.file) {
+      return res.status(400).json({ message: "Image is required" });
+    }
 
-      if (!productImage) {
-          return res.status(400).json({ message: "Image is required" });
-      }
+    // Upload image to Cloudinary
+    const result = await cloudinary.uploader.upload_stream(
+      { folder: "product_images" }, // Store images inside a Cloudinary folder
+      async (error, result) => {
+        if (error) {
+          console.error("Cloudinary Upload Error:", error);
+          return res.status(500).json({ message: "Image upload failed", error: error.message });
+        }
 
-      const newProduct = new Product({
+        // Create a new product with the Cloudinary image URL
+        const newProduct = new Product({
           productName: product_name,
           manufacturer: product_description,
           sellerName: seller_name,
           sellerEmail: seller_Email,
           productPrice: product_price,
-          productImage: productImage,
-      });
+          productImage: result.secure_url, // Cloudinary image URL
+        });
 
-      await newProduct.save();
-      res.status(201).json({ message: "Product added successfully", product: newProduct });
+        await newProduct.save();
+        res.status(201).json({ message: "Product added successfully", product: newProduct });
+      }
+    );
+
+    // Convert image buffer to a stream
+    const stream = require("stream");
+    const bufferStream = new stream.PassThrough();
+    bufferStream.end(req.file.buffer);
+    bufferStream.pipe(result);
+
   } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Error adding product", error: error.message });
+    console.error("Error saving product:", error);
+    res.status(500).json({ message: "Error adding product", error: error.message });
   }
 });
 
 
-
-app.get('/seller/view-products/:email', async (req, res) => {
-  const { email } = req.params;  // Get email from URL params
+app.get("/seller/view-products/:email", async (req, res) => {
+  const { email } = req.params; // Get email from URL params
 
   if (!email) {
-    return res.status(400).json({ error: 'Seller email is required' });
+    return res.status(400).json({ error: "Seller email is required" });
   }
 
   try {
     // Query to find products by seller's email
     const products = await Product.find({ sellerEmail: email });
-    
+
     if (products.length === 0) {
-      return res.status(404).json({ message: 'No products found for this seller' });
+      return res
+        .status(404)
+        .json({ message: "No products found for this seller" });
     }
     res.status(200).json(products);
   } catch (err) {
-    console.error('Error fetching products:', err);
-    res.status(500).json({ error: 'Server error' });
+    console.error("Error fetching products:", err);
+    res.status(500).json({ error: "Server error" });
   }
 });
-
 
 app.delete("/seller/deleteProduct/:id", async (req, res) => {
   try {
@@ -490,7 +470,9 @@ app.delete("/seller/deleteProduct/:id", async (req, res) => {
     res.status(200).json({ message: "Product deleted successfully" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error deleting product", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error deleting product", error: error.message });
   }
 });
 
@@ -512,9 +494,6 @@ app.put("/updateProduct/:id", async (req, res) => {
     res.status(500).json({ message: "Error updating product", error });
   }
 });
-
-
-
 
 // ******************  ADMIN   ****************************************
 
@@ -607,7 +586,6 @@ app.get("/admin/admin-viewAll-sellers", async (req, res) => {
   }
 });
 
-
 app.get("/admin/view-all-products", async (req, res) => {
   try {
     const products = await Product.find({});
@@ -620,9 +598,6 @@ app.get("/admin/view-all-products", async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
-
-
-
 
 app.put("/admin/status-action", async (req, res) => {
   const {
@@ -673,21 +648,17 @@ app.put("/admin/status-action", async (req, res) => {
       return res.status(404).json({ message: "Service request not found." });
     }
 
-    res
-      .status(200)
-      .json({
-        message: "Service status updated successfully.",
-        updatedRequest,
-      });
+    res.status(200).json({
+      message: "Service status updated successfully.",
+      updatedRequest,
+    });
   } catch (err) {
     console.error("Error updating service status:", err);
-    res
-      .status(500)
-      .json({
-        message: "Failed to update service status.",
-        error: err.message,
-        stack: err.stack,
-      });
+    res.status(500).json({
+      message: "Failed to update service status.",
+      error: err.message,
+      stack: err.stack,
+    });
   }
 });
 
@@ -728,19 +699,13 @@ app.put("/admin/status-action", async (req, res) => {
 //   debug: true, // Enable debug output
 // });
 
-
-
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-      user: process.env.EMAIL_USER, 
-      pass: process.env.EMAIL_PASS,
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
 });
-
-
-
-
 
 const CUSTOMER_CARE_EMAIL = "jfsdsdpams@gmail.com";
 
@@ -771,7 +736,6 @@ app.post("/send-email", async (req, res) => {
   }
 });
 
-
 app.put("/admin/accept-seller_status_action", async (req, res) => {
   const {
     sellerName,
@@ -784,17 +748,17 @@ app.put("/admin/accept-seller_status_action", async (req, res) => {
   try {
     const updatedRequest = await Seller_Register_data.findOneAndUpdate(
       {
-       sellerName,
-       sellerEmail,
-       sellerGender,
-       sellerContact_no,
+        sellerName,
+        sellerEmail,
+        sellerGender,
+        sellerContact_no,
       },
       {
         $set: {
-          sellerStatus
+          sellerStatus,
         },
       },
-      { new: true } 
+      { new: true }
     );
 
     if (!updatedRequest) {
@@ -802,49 +766,37 @@ app.put("/admin/accept-seller_status_action", async (req, res) => {
       return res.status(404).json({ message: "Service request not found." });
     }
 
-    res
-      .status(200)
-      .json({
-        message: "Service status updated successfully.",
-        updatedRequest,
-      });
+    res.status(200).json({
+      message: "Service status updated successfully.",
+      updatedRequest,
+    });
   } catch (err) {
     console.error("Error updating service status:", err);
-    res
-      .status(500)
-      .json({
-        message: "Failed to update service status.",
-        error: err.message,
-        stack: err.stack,
-      });
+    res.status(500).json({
+      message: "Failed to update service status.",
+      error: err.message,
+      stack: err.stack,
+    });
   }
 });
 
-
-
-
-
-
-// password reset option 
-
-
-
+// password reset option
 
 app.post("/send-otp", async (req, res) => {
   try {
-      const { email } = req.body;
-      const user = await Register_data.findOne({ email });
-      if (!user) return res.status(400).json({ message: "User not found" });
+    const { email } = req.body;
+    const user = await Register_data.findOne({ email });
+    if (!user) return res.status(400).json({ message: "User not found" });
 
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      user.otp = otp;
-      user.otpExpires = new Date(Date.now() + 10 * 60000); // OTP expires in 10 min
-      await user.save();
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.otp = otp;
+    user.otpExpires = new Date(Date.now() + 10 * 60000); // OTP expires in 10 min
+    await user.save();
 
-      await transporter.sendMail({
-          from: process.env.EMAIL_USER,
-          to: email,
-          subject: "Password Reset OTP",
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Password Reset OTP",
       //     text: `Dear User,
 
       //             We received a request to reset your password. Please use the following One-Time Password (OTP) to proceed:
@@ -855,7 +807,7 @@ app.post("/send-otp", async (req, res) => {
 
       //             For security reasons, do not share this OTP with anyone.
 
-      //             Best regards,  
+      //             Best regards,
       //             Xperience Auto Support Team`,
       // });
       html: `<p>Dear User,</p>
@@ -870,46 +822,46 @@ app.post("/send-otp", async (req, res) => {
 
            <p>Best regards,<br>
            <strong>Xperience Auto Support Team</strong></p>`,
-      });
+    });
 
-      res.json({ message: "OTP sent to your email" });
+    res.json({ message: "OTP sent to your email" });
   } catch (error) {
-      res.status(500).json({ message: "Error sending OTP" });
+    res.status(500).json({ message: "Error sending OTP" });
   }
 });
 
 // **Step 2: Verify OTP**
 app.post("/verify-otp", async (req, res) => {
   try {
-      const { email, otp } = req.body;
-      const user = await Register_data.findOne({ email });
+    const { email, otp } = req.body;
+    const user = await Register_data.findOne({ email });
 
-      if (!user || user.otp !== otp || new Date() > user.otpExpires) {
-          return res.status(400).json({ message: "Invalid or expired OTP" });
-      }
+    if (!user || user.otp !== otp || new Date() > user.otpExpires) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
 
-      res.json({ message: "OTP verified. You can reset your password now." });
+    res.json({ message: "OTP verified. You can reset your password now." });
   } catch (error) {
-      res.status(500).json({ message: "Error verifying OTP" });
+    res.status(500).json({ message: "Error verifying OTP" });
   }
 });
 
 // **Step 3: Reset Password**
 app.post("/reset-password", async (req, res) => {
   try {
-      const { email, newPassword } = req.body;
-      const user = await Register_data.findOne({ email });
+    const { email, newPassword } = req.body;
+    const user = await Register_data.findOne({ email });
 
-      if (!user) return res.status(400).json({ message: "User not found" });
+    if (!user) return res.status(400).json({ message: "User not found" });
 
-      user.password = newPassword;
-      user.otp = null;
-      user.otpExpires = null;
-      await user.save();
+    user.password = newPassword;
+    user.otp = null;
+    user.otpExpires = null;
+    await user.save();
 
-      res.json({ message: "Password reset successful" });
+    res.json({ message: "Password reset successful" });
   } catch (error) {
-      res.status(500).json({ message: "Error resetting password" });
+    res.status(500).json({ message: "Error resetting password" });
   }
 });
 
@@ -923,8 +875,6 @@ app.get("/admin/customer-count", async (req, res) => {
   }
 });
 
-
-
 app.get("/admin/seller-count", async (req, res) => {
   try {
     const seller_count = await Seller_Register_data.countDocuments();
@@ -934,9 +884,6 @@ app.get("/admin/seller-count", async (req, res) => {
     res.status(500).json({ error: "Server error", message: error.message });
   }
 });
-
-
-
 
 app.get("/admin/service-request-count", async (req, res) => {
   try {
@@ -948,8 +895,6 @@ app.get("/admin/service-request-count", async (req, res) => {
   }
 });
 
-
-
 app.get("/admin/product-count", async (req, res) => {
   try {
     const Product_count = await Product.countDocuments();
@@ -960,72 +905,73 @@ app.get("/admin/product-count", async (req, res) => {
   }
 });
 
-
 const paymentSchema = new mongoose.Schema({
   userName: {
     type: String,
-    required: true
+    required: true,
   },
   userEmail: {
     type: String,
-    required: true
+    required: true,
   },
   date: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
-  items: [{
-    name: {
-      type: String,
-      required: true
+  items: [
+    {
+      name: {
+        type: String,
+        required: true,
+      },
+      quantity: {
+        type: Number,
+        required: true,
+      },
+      price: {
+        type: Number,
+        required: true,
+      },
     },
-    quantity: {
-      type: Number,
-      required: true
-    },
-    price: {
-      type: Number,
-      required: true
-    }
-  }],
+  ],
   totalAmount: {
     type: Number,
-    required: true
+    required: true,
   },
   paymentMode: {
     type: String,
-    default: 'Razorpay'
+    default: "Razorpay",
   },
   paymentReceipt: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 });
 
-const Payment = mongoose.model('Payment', paymentSchema);
+const Payment = mongoose.model("Payment", paymentSchema);
 
-
-app.get('/api/payments/:email', async (req, res) => {
+app.get("/api/payments/:email", async (req, res) => {
   try {
-      const userEmail = req.params.email;
-      const payments = await Payment.find({ userEmail });
+    const userEmail = req.params.email;
+    const payments = await Payment.find({ userEmail });
 
-      if (!payments.length) {
-          return res.status(404).json({ message: "No payments found for this user." });
-      }
+    if (!payments.length) {
+      return res
+        .status(404)
+        .json({ message: "No payments found for this user." });
+    }
 
-      res.json(payments);
+    res.json(payments);
   } catch (error) {
-      res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
-
-app.post('/api/payment', async (req, res) => {
+app.post("/api/payment", async (req, res) => {
   const { userName, userEmail, items, totalAmount, paymentReceipt } = req.body;
 
   if (!userName || !userEmail || !items || !totalAmount || !paymentReceipt) {
-    return res.status(400).json({ error: 'Missing required payment details' });
+    return res.status(400).json({ error: "Missing required payment details" });
   }
 
   console.log("Received payment details:", {
@@ -1033,7 +979,7 @@ app.post('/api/payment', async (req, res) => {
     userEmail,
     items,
     totalAmount,
-    paymentReceipt
+    paymentReceipt,
   });
 
   // Create new payment document
@@ -1042,7 +988,7 @@ app.post('/api/payment', async (req, res) => {
     userEmail,
     items,
     totalAmount,
-    paymentReceipt
+    paymentReceipt,
   });
 
   try {
@@ -1052,22 +998,21 @@ app.post('/api/payment', async (req, res) => {
 
     // Respond with a success message
     res.status(200).json({
-      message: 'Payment details saved successfully',
-      payment: savedPayment
+      message: "Payment details saved successfully",
+      payment: savedPayment,
     });
   } catch (error) {
     console.error("Error saving payment:", error);
 
     // Handle error while saving
     res.status(500).json({
-      error: 'Failed to save payment details',
-      details: error.message
+      error: "Failed to save payment details",
+      details: error.message,
     });
   }
 });
 
-
-app.get('/admin/payments', async (req, res) => {
+app.get("/admin/payments", async (req, res) => {
   try {
     const payments = await Payment.find();
     res.json(payments);
@@ -1076,15 +1021,11 @@ app.get('/admin/payments', async (req, res) => {
   }
 });
 
-
-
-
-
 const port = process.env.PORT || 4000;
 
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
+app.get("/", (req, res) => {
+  res.send("Hello World!");
+});
 
 // Start the server
 app.listen(port, () => {
